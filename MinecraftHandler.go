@@ -9,37 +9,9 @@ import (
     "time"
 )
 
-const (
-	kUNKNOWN_EVENT = iota
-	kPLAYER_CHAT_EVENT = iota
-    kPLAYER_COMMAND_EVENT = iota
-	kSERVER_EVENT = iota
-	kAUTHENTICATION_EVENT = iota
-	kPLAYER_EVENT_JOINED = iota
-    kPLAYER_EVENT_WAS = iota
-    kPLAYER_EVENT_LOST = iota
-    kPLAYER_EVENT_LEFT = iota
-    kPLAYER_EVENT_FELL = iota
-    kPLAYER_EVENT_DROWNED = iota
-)
-
-const (
-    kPEVENT_JOINED_STR = "joined"
-    kPEVENT_WAS_STR = "was"
-    kPEVENT_LOST_STR = "lost"
-    kPEVENT_LEFT_STR = "left"
-    kPEVENT_FELL_STR = "fell"
-    kPEVENT_DROWNED_STR = "drowned"
-)
-
-const (
-    kPCOMMAND_TP_STR = "+tp"
-    kPCOMMAND_TP_WAYPOINT_STR = "+tpway"
-    kPCOMMAND_WAYPOINT_SAVE_STR = "+waypoint_save"
-    kPCOMMAND_WAYPOINT_RESET_STR = "+waypoint_reset"
-    kPCOMMAND_WEATHER = "+weather"
-    kPCOMMAND_CLOCK = "+clock"
-)
+/* Mongodb integration for saving Waypoints and other data. Break Server and Player command
+/ parsers into seperate Go files for organization sake. Online time monitoring.
+*/
 
 func main() {
 	fmt.Println("< Minecraft Handler >")
@@ -54,9 +26,9 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		var incomingLine = scanner.Text()
-	    fmt.Println("Incoming Line: ", incomingLine)
+	    fmt.Println("Incoming Line:", incomingLine)
 	    var lineType = LineDetermineType(incomingLine)
-	    fmt.Println("This line is of type: ", lineType)
+	    fmt.Println("This line is of type:", lineType)
         if lineType == kPLAYER_COMMAND_EVENT {
             LineResolveCommand(incomingLine)
 
@@ -66,51 +38,6 @@ func main() {
 	if scanner.Err() != nil {
 	    // handle error.
 	}
-
-}
-
-func LineResolveCommand(line string) int {
-    fmt.Println("LineResolveCommand")
-    tokenizedString := strings.Split(line, " ")
-    fmt.Println(tokenizedString)
-    const playerCommandBase = 4
-
-    switch tokenizedString[playerCommandBase] {
-        case kPCOMMAND_TP_STR:
-            fmt.Println("Teleport Player")
-            //Command Validation
-            //Authentication Check
-
-        case kPCOMMAND_TP_WAYPOINT_STR:
-            fmt.Println("Teleport Waypoint")
-            //Command & Waypoint Validation
-            //Authentication Check
-
-        case kPCOMMAND_WAYPOINT_SAVE_STR:
-            fmt.Println("Waypoint Save")
-            //Command Validation
-            //Authentication Check
-
-        case kPCOMMAND_WAYPOINT_RESET_STR:
-            fmt.Println("Waypoint Reset")
-            //Authentication Check
-
-        case kPCOMMAND_WEATHER:
-            fmt.Println("Weather")
-            //Command Validation
-            //Authentication Check
-
-        case kPCOMMAND_CLOCK:
-            fmt.Println("Clock")
-            currentTime := time.Now()
-            var currentTimeFormatted = currentTime.Format("01-02-2006 15:04:05")
-            ServerAnnounce(currentTimeFormatted)
-
-        default:
-            fmt.Println("Player Unknown Command")
-
-    }
-    return 0
 
 }
 
@@ -145,7 +72,7 @@ func LineDetermineType(line string) int {
     }
 
     for e, token := range tokenizedString {    
-        fmt.Println("Token Index: ", e, token)
+        fmt.Println("Token Index:", e, token)
     }
 
     //Check the string against the known player event types, return the type of event
@@ -181,45 +108,122 @@ func LineDetermineType(line string) int {
     return kUNKNOWN_EVENT
 }
 
+func PlayerNameClean(playerName string) string {
+    var playerNameReplacer = strings.NewReplacer("<", "", ">", "", " ", "")
+    playerName = playerNameReplacer.Replace(playerName)
+    return playerName
+
+}
+
+func LineResolveCommand(line string) int {
+    fmt.Println("LineResolveCommand")
+    tokenizedString := strings.Split(line, " ")
+    fmt.Println(tokenizedString)
+    
+    const playerCommandIndex = 4
+    const playerNameIndex = 3
+    
+    var playerName = PlayerNameClean(tokenizedString[playerNameIndex])
+    fmt.Println("Command Originating Player:", playerName)
+    
+    var tokensCount = len(tokenizedString)
+    fmt.Println("Command Tokens:", tokensCount)
+
+    switch tokenizedString[playerCommandIndex] {
+        case kPCOMMAND_TP_STR:
+            fmt.Println("Teleport Player")
+            //Command Validation
+            //Authentication Check
+
+        case kPCOMMAND_TP_WAYPOINT_STR:
+            fmt.Println("Teleport Waypoint")
+            //Command & Waypoint Validation
+            //if tokensCount != 
+            //Authentication Check
+
+        case kPCOMMAND_WAYPOINT_SAVE_STR:
+            fmt.Println("Waypoint Save")
+            //Command Validation
+            //Authentication Check
+
+        case kPCOMMAND_WAYPOINT_SHOW_STR:
+            fmt.Println("Waypoint Show")
+            //Authentication Check
+
+        case kPCOMMAND_WAYPOINT_RESET_STR:
+            fmt.Println("Waypoint Reset")
+            //Authentication Check
+
+        case kPCOMMAND_WEATHER:
+            fmt.Println("Weather")
+            //Command Validation
+            //Authentication Check
+
+        case kPCOMMAND_HELP:
+            fmt.Println("Help")
+            //No validation or authentication required for this command.
+            CommandHelpHandler(playerName)
+
+        case kPCOMMAND_CLOCK:
+            fmt.Println("Clock")
+            //No validation or authentication required for this command.
+            CommandClockHandler()
+
+        default:
+            fmt.Println("Player Unknown Command")
+
+    }
+    return 0
+
+}
+
+func CommandWeatherHandler(){
+
+}
+
+func CommandHelpHandler(player string){
+    //ServerAnnounce(player)
+}
+
+func CommandClockHandler(){
+    currentTime := time.Now()
+    var currentTimeFormatted = currentTime.Format("01-02-2006 15:04:05")
+    ServerAnnounce(currentTimeFormatted)
+}
+
 func ServerWhisper(player string, message string){
     //tell
     var commandString  = "/tell " + player + "\\\"" + message + "\\\""
-    fmt.Println("Server tell:", commandString)
     ScreenExecuteCommand(commandString)
 }
 
 func ServerAnnounce(message string){
     //say
     var commandString  = "/say " + message + " "
-    fmt.Println("Server say: ", commandString)
     ScreenExecuteCommand(commandString)
 }
 
 func ServerTp(playerOne string, playerTwo string){
     //tp
     var commandString  = "/tp"
-    fmt.Println("Server tp: ", commandString)
     ScreenExecuteCommand(commandString)
 }
 
 func ServerSaveAll(){
     ///save-all [flush]
     var commandString  = "/save-all"
-    fmt.Println("Server save-all: ", commandString)
     ScreenExecuteCommand(commandString)
 }
 
 func ServerSaveOff(){
     ///save-off
     var commandString  = "/save-off"
-    fmt.Println("Server save-off: ", commandString)
     ScreenExecuteCommand(commandString)
 }
 
 func ServerSaveOn(){
     ///save-on
     var commandString  = "/save-on"
-    fmt.Println("Server save-on: ", commandString)
     ScreenExecuteCommand(commandString)
 }
 
@@ -231,26 +235,23 @@ func ServerJingle(player string){
 func ServerWeather(weatherState string){
     //weather
     var commandString  = "/save-on"
-    fmt.Println("Server save-on: ", commandString)
     ScreenExecuteCommand(commandString)
 }
 
 func ScreenListSessions(){
-	var fullCommand = "screen -ls"
-    screenCommand := exec.Command(fullCommand)
-    screenSessionsRaw, err := screenCommand.Output()
+    screenSessions := exec.Command("bash", "-c", "/usr/bin/screen -ls")
+    screenSessionsOut, err := screenSessions.Output()
     if err != nil {
         panic(err)
     }
-    fmt.Println("> screen -ls")
-    var screenSessionsString = string(screenSessionsRaw)
+    fmt.Println(string(screenSessionsOut))
+    var screenSessionsString = string(screenSessionsOut)
     screenSessionsLines := strings.Split(screenSessionsString, "/n")
-	fmt.Println(screenSessionsLines)
+    fmt.Println(screenSessionsLines)
 
 }
 
 func ScreenExecuteCommand(command string){
-    //var fullCommand = "/usr/bin/screen -S MinecraftServer -p 0 -X stuff \"" + command + "^M\""
     screenCmd := exec.Command("bash", "-c", "/usr/bin/screen -S MinecraftServer -p 0 -X stuff \"" + command + "^M\"")
     screenCmdOut, err := screenCmd.Output()
     if err != nil {
